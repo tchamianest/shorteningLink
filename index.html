@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>URL Shortener</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        background-color: rgb(44, 43, 42);
+        color: white;
+      }
+
+      h1 {
+        text-align: center;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      form {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      input[type="text"] {
+        flex: 1;
+        padding: 10px;
+        font-size: 16px;
+      }
+
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      #shortenedUrls {
+        margin-top: 20px;
+      }
+
+      #shortenedUrls p {
+        word-break: break-all;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>URL Shortener</h1>
+      <form id="shortenForm">
+        <input
+          type="text"
+          id="longUrlInput"
+          placeholder="Enter your long URL here"
+        />
+        <button type="submit" style="color: green">Shorten</button>
+      </form>
+      <div id="shortenedUrls">
+        <!-- Display recent shortened URLs here -->
+      </div>
+    </div>
+
+    <script>
+      const shortenForm = document.getElementById("shortenForm");
+      const longUrlInput = document.getElementById("longUrlInput");
+      const shortenedUrlsContainer = document.getElementById("shortenedUrls");
+      const MAX_RECENT_URLS = 5; // Adjust the number of recent URLs to display
+
+      shortenForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const longUrl = longUrlInput.value.trim();
+
+        if (!longUrl) {
+          alert("Please enter a valid URL.");
+          return;
+        }
+
+        fetch(
+          `https://api.shrtco.de/v2/shorten?url=${encodeURIComponent(longUrl)}`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.ok) {
+              const shortUrl = data.result.full_short_link;
+              displayShortenedUrl(shortUrl);
+              saveToBrowserStorage(shortUrl);
+              longUrlInput.value = "";
+            } else {
+              throw new Error(data.error || "Something went wrong.");
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("Something went wrong. Please try again later.");
+          });
+      });
+
+      // Function to display the shortened URL on the page
+      function displayShortenedUrl(shortUrl) {
+        const shortenedUrlElement = document.createElement("p");
+        shortenedUrlElement.textContent = shortUrl;
+        shortenedUrlsContainer.appendChild(shortenedUrlElement);
+      }
+
+      // Function to save the shortened URL to browser storage
+      function saveToBrowserStorage(shortUrl) {
+        let recentUrls = getRecentUrls();
+        recentUrls.unshift(shortUrl);
+        if (recentUrls.length > MAX_RECENT_URLS) {
+          recentUrls = recentUrls.slice(0, MAX_RECENT_URLS);
+        }
+        localStorage.setItem("recentUrls", JSON.stringify(recentUrls));
+      }
+
+      // Function to retrieve the user's recent shortened URLs from browser storage
+      function getRecentUrls() {
+        const recentUrlsJSON = localStorage.getItem("recentUrls");
+        return recentUrlsJSON ? JSON.parse(recentUrlsJSON) : [];
+      }
+
+      // Load recent shortened URLs from browser storage on page load
+      window.addEventListener("load", () => {
+        loadRecentUrls();
+      });
+
+      // Function to load and display the user's recent shortened URLs on the page
+      function loadRecentUrls() {
+        const recentUrls = getRecentUrls();
+        shortenedUrlsContainer.innerHTML = "";
+        recentUrls.forEach((url) => {
+          displayShortenedUrl(url);
+        });
+      }
+    </script>
+  </body>
+</html>
